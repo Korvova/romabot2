@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import { WebSocketServer } from 'ws';
 
+import { readFileSync, existsSync } from 'fs';
+import path from 'path';
+
+
 dotenv.config();
 
 const app = express();
@@ -23,6 +27,54 @@ const PORT = process.env.PORT || 3002;
 const server = app.listen(PORT, () => {
   console.log(`✅ API server listening at http://localhost:${PORT}`);
 });
+
+
+
+
+
+
+const PROMPT_PATH = path.join(process.cwd(), 'assistant.txt');
+const TOOLS_PATH  = path.join(process.cwd(), 'tools.json');
+const DEFAULT_TOOLS = [{
+  type:'function',
+  name:'show_qr_code',
+  description:'Показать QR‑код',
+  parameters:{type:'object',properties:{qrUrl:{type:'string'}},required:['qrUrl']},
+  meta:{method:'GET',endpoint:'/qr.png'}
+}];
+
+// GET /get-assistant
+app.get('/get-assistant', (_req, res) => {
+  try {
+    const txt = existsSync(PROMPT_PATH)
+      ? readFileSync(PROMPT_PATH, 'utf8')
+      : '';
+    res.json({ instructions: txt });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ instructions: '' });
+  }
+});
+
+// GET /get-tools
+app.get('/get-tools', (_req, res) => {
+  try {
+    let tools = DEFAULT_TOOLS;
+    if (existsSync(TOOLS_PATH)) {
+      tools = JSON.parse(readFileSync(TOOLS_PATH, 'utf8'));
+    }
+    res.json({ tools });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ tools: DEFAULT_TOOLS });
+  }
+});
+
+
+
+
+
+
 
 // Привязываем WebSocket к открытому HTTP‑серверу (на том же порту)
 const wss = new WebSocketServer({ server, path: '/ws' });
