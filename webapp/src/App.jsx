@@ -92,9 +92,25 @@ function App() {
     };
     dc.onmessage = ({ data }) => {
       const ev = JSON.parse(data);
-      if (ev.type === 'response.audio_transcript.delta') addLog(`Roma: ${ev.delta}`);
-      if (ev.type === 'response.content_part.added')      setIsSpeaking(true);
-      if (ev.type === 'output_audio_buffer.stopped')      setIsSpeaking(false);
+
+
+
+
+    if (ev.type === 'response.content_part.added') {
+       setIsSpeaking(true);
+     }
+     // Частичная распечатка аудио‑текста (если нужно подсветить речь)
+    if (ev.type === 'response.audio_transcript.delta') {
+       setIsSpeaking(true);
+       addLog(`Roma: ${ev.delta}`);
+     }
+    // Когда OpenAI завершил говорить
+     if (ev.type === 'output_audio_buffer.stopped') {
+       setIsSpeaking(false);
+     }
+
+
+
     };
 
     // 5) SDP handshake
@@ -119,8 +135,23 @@ function App() {
 
   return (
     <div className="app-container">
-      <img id="silent-avatar" src="/2/roma-silent.gif" alt="Silent" className="avatar silent" />
-      <img id="speak-avatar"  src="/2/roma-speak.gif"  alt="Speaking" className="avatar speaking" />
+
+
+<img
+  id="silent-avatar"
+  src="/2/roma-silent.gif"
+  className="avatar silent"
+  style={{ zIndex: isSpeaking ? 0 : 1 }}
+/>
+<img
+  id="speak-avatar"
+  src="/2/roma-speak.gif"
+  className="avatar speaking"
+  style={{ zIndex: isSpeaking ? 1 : 0 }}
+/>
+
+
+
 
       <div id="controls">
         <button onClick={start} disabled={started}>Start Talking</button>
