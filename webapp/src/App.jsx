@@ -24,6 +24,11 @@ function App() {
       fetch('/2/get-tools').then(r => r.json())
     ]);
     const assistantTxt = (instructions || '').trim();
+
+console.log('🔑 Loaded assistantTxt:', assistantTxt);
+addLog(`🔑 assistantTxt: ${assistantTxt}`);
+
+
     const hasQR = userTools.some(f => f.name === 'show_qr_code');
     const tools = hasQR
       ? userTools
@@ -39,7 +44,7 @@ function App() {
     // 2) Динамический URL для WS
     const loc = window.location;
     const wsProtocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${loc.host}/2/ws`;
+  const wsUrl = `${wsProtocol}//${loc.host}${loc.pathname}ws`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -80,7 +85,7 @@ function App() {
         type: 'session.update',
         session: {
           instructions: assistantTxt,
-          voice: 'echo',
+          voice: 'alloy',
           turn_detection: { type:'server_vad' },
           input_audio_transcription: { model:'whisper-1' },
           output_audio_format: 'pcm16',

@@ -8,6 +8,10 @@ import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
 
+import { PrismaClient } from './generated/prisma/index.js';
+
+
+
 dotenv.config();
 
 const app = express();
@@ -30,7 +34,7 @@ const server = app.listen(PORT, () => {
 
 
 
-
+const prisma = new PrismaClient();
 
 
 const PROMPT_PATH = path.join(process.cwd(), 'assistant.txt');
@@ -43,30 +47,82 @@ const DEFAULT_TOOLS = [{
   meta:{method:'GET',endpoint:'/qr.png'}
 }];
 
-// GET /get-assistant
-app.get('/get-assistant', (_req, res) => {
+
+// GET /get-assistant (теперь из БД)
+app.get('/get-assistant', async (_req, res) => {
   try {
-    const txt = existsSync(PROMPT_PATH)
-      ? readFileSync(PROMPT_PATH, 'utf8')
-      : '';
-    res.json({ instructions: txt });
+    const promptSetting = await prisma.setting.findUnique({
+      where: { key: 'prompt' }
+    });
+    const instructions = promptSetting?.value || '';
+    res.json({ instructions });
   } catch (e) {
     console.error(e);
     res.status(500).json({ instructions: '' });
   }
 });
 
+
+
+
+
 // GET /get-tools
-app.get('/get-tools', (_req, res) => {
+app.get('/get-tools', async (_req, res) => {
   try {
-    let tools = DEFAULT_TOOLS;
-    if (existsSync(TOOLS_PATH)) {
-      tools = JSON.parse(readFileSync(TOOLS_PATH, 'utf8'));
-    }
+    const toolsSetting = await prisma.setting.findUnique({
+      where: { key: 'tools' }
+    });
+    const tools = toolsSetting
+      ? JSON.parse(toolsSetting.value)
+      : DEFAULT_TOOLS;
     res.json({ tools });
   } catch (e) {
     console.error(e);
     res.status(500).json({ tools: DEFAULT_TOOLS });
+  }
+});
+
+
+app.get('/admin/settings', async (_req, res) => {
+  try {
+    const promptSetting = await prisma.setting.findUnique({
+      where: { key: 'prompt' }
+    });
+    const toolsSetting = await prisma.setting.findUnique({
+      where: { key: 'tools' }
+    });
+
+    res.json({
+      instructions: promptSetting?.value || '',
+      tools: toolsSetting ? JSON.parse(toolsSetting.value) : []
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'failed to load settings' });
+  }
+});
+
+// Маршрут сохранения настроек
+// POST /admin/settings
+app.post('/admin/settings', async (req, res) => {
+  const { instructions, tools } = req.body;
+  try {
+    // Сохраняем или обновляем prompt
+    await prisma.setting.upsert({
+      where: { key: 'prompt' },
+      update: { value: instructions },
+      create: { key: 'prompt', value: instructions }
+    });
+    // Сохраняем или обновляем tools (строкой JSON)
+    await prisma.setting.upsert({
+      where: { key: 'tools' },
+      update: { value: JSON.stringify(tools) },
+      create: { key: 'tools', value: JSON.stringify(tools) }
+    });
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'failed to save settings' });
   }
 });
 
