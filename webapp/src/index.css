@@ -71,3 +71,25 @@ button {
 button:disabled {
   opacity: 0.5;
 }
+
+
+/* кнопка‑показать, всегда присутствует, но «невидима» без hover */
+.toggle-btn {
+  position: fixed;          /* можно поменять расположение при желании */
+  bottom: 16px;
+  right: 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #444;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+
+  opacity: 0;               /* по умолчанию полностью прозрачна */
+  transition: opacity 0.25s;
+}
+
+.toggle-btn:hover {
+  opacity: 1;               /* появляется при наведении мыши */
+}
+
